@@ -54,11 +54,11 @@ app.use((error, req, res, next) => {
 async function startServer() {
   try {
     console.log("=".repeat(60));
-    console.log("🤖 Image Classification API Server");
+    console.log("Image Classification API Server");
     console.log("=".repeat(60));
     await loadModel();
     app.listen(PORT, () => {
-      console.log(`✅ Server running on http://localhost:${PORT}`);
+      console.log(`Server running on http://localhost:${PORT}`);
       console.log("=".repeat(60));
     });
   } catch (error) {

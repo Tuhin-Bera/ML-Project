@@ -6,7 +6,7 @@ const loadModel = async () => {
   if (!model) {
     console.log('Loading MobileNet model...');
     model = await mobilenet.load({ version: 2, alpha: 1.0 });
-    console.log('✅ Model loaded successfully!');
+    console.log('Model loaded successfully!');
   }
   return model;
 };
