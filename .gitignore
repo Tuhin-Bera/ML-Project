@@ -1,1 +1,30 @@
-node_modules
+# ML artifacts (large)
+ml-service/artifacts/*.pt
+ml-service/artifacts/class_names.json
+
+# Python
+ml-service/__pycache__/
+ml-service/**/__pycache__/
+ml-service/.venv/
+ml-service/venv/
+*.pyc
+
+# Data (download PlantVillage yourself)
+ml-service/data/
+
+# Node / Next
+web/node_modules/
+web/.next/
+web/out/
+web/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+
+data/*
+
+.env
+.env.local
+.env.example
