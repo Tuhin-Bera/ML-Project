@@ -14,11 +14,10 @@ import {
   Sprout,
   Compass,
   BookOpen,
-  Info,
-  ChevronDown,
   Leaf,
   Zap,
   TreePine,
+  type LucideIcon,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -29,7 +28,7 @@ type Prediction = { label: string; confidence: number };
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/jpg"]);
 
-const FOCUS_OPTIONS: { value: PlantInfoFocus; label: string; icon: any; hint: string; color: string }[] = [
+const FOCUS_OPTIONS: { value: PlantInfoFocus; label: string; icon: LucideIcon; hint: string; color: string }[] = [
   {
     value: "balanced",
     label: "Balanced overview",
@@ -699,174 +698,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Footer */}
-          <div className="mt-auto border-t border-zinc-900 bg-zinc-950 px-5 py-4">
-            <div className="flex items-start gap-2">
-              <Users className="h-3.5 w-3.5 text-zinc-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-700 mb-1">Dev Team</p>
-                <div className="flex flex-wrap gap-x-2 gap-y-0.5">
-                  {["Achin Hazra", "Tuhin Bera", "Nilu", "Ganesh Jana", "Chinmoy"].map((name) => (
-                    <span key={name} className="text-[10px] font-medium text-zinc-500">{name}</span>
-                  ))}
-                </div>
-<<<<<<< HEAD
-              </section>
-            )}
-
-            {/* ── Divider ── */}
-            {predictions && predictions.length > 0 && (
-              <div className="h-px bg-zinc-800/70" />
-            )}
-
-            {/* ── Section: Write-up Settings ── */}
-            {predictions && predictions.length > 0 && (
-              <section aria-label="Write-up settings">
-                <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                  Step 3 — Generate
-                </p>
-
-                {/* Focus mode selector */}
-                <div className="space-y-3">
-                  <div>
-                    <label
-                      htmlFor="focus-select"
-                      className="mb-1.5 block text-xs font-semibold text-zinc-400"
-                    >
-                      Report focus
-                    </label>
-                    <div className="relative">
-                      {/* Left status icon derived from current option */}
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-400/80 pointer-events-none">
-                        {(() => {
-                          const Icon = FOCUS_OPTIONS.find((o) => o.value === infoFocus)?.icon || Compass;
-                          return <Icon className="h-4 w-4" />;
-                        })()}
-                      </span>
-                      <select
-                        id="focus-select"
-                        value={infoFocus}
-                        onChange={(e) => {
-                          setInfoFocus(e.target.value as PlantInfoFocus);
-                          clearInfo();
-                          setFocusChanged(true);
-                        }}
-                        className="w-full appearance-none rounded-xl border border-zinc-700/70 bg-zinc-900/60 pl-10 pr-10 py-3 text-sm font-semibold text-zinc-100 outline-none transition focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
-                      >
-                        {FOCUS_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value} className="bg-zinc-950 text-zinc-200">
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                      {/* Down arrow icon */}
-                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
-                        <ChevronDown className="h-4 w-4" />
-                      </span>
-                    </div>
-                    <p className="mt-2 text-xs text-zinc-500 leading-relaxed pl-1">
-                      {infoFocus === "custom"
-                        ? "Type your own question — the AI answers it directly."
-                        : FOCUS_OPTIONS.find((o) => o.value === infoFocus)?.hint ?? ""}
-                    </p>
-                  </div>
-
-                  {/* Custom question textarea */}
-                  {infoFocus === "custom" && (
-                    <div className="space-y-1.5">
-                      <label
-                        htmlFor="custom-plant-question"
-                        className="block text-xs font-semibold text-zinc-400"
-                      >
-                        Your question
-                      </label>
-                      <textarea
-                        id="custom-plant-question"
-                        value={customQuestion}
-                        onChange={(e) => {
-                          setCustomQuestion(e.target.value.slice(0, CUSTOM_QUESTION_MAX));
-                          clearInfo();
-                          setFocusChanged(true);
-                        }}
-                        rows={3}
-                        placeholder="e.g. Is this plant toxic to dogs? How do I propagate it?"
-                        className="w-full resize-y rounded-xl border border-zinc-700/70 bg-zinc-900/60 px-3.5 py-3 text-sm leading-relaxed text-zinc-100 outline-none placeholder:text-zinc-600 transition focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30"
-                      />
-                      <div className="flex items-center justify-between px-1">
-                        <p className="text-xs text-zinc-600 font-mono">
-                          {customQuestionTrimmed.length}/{CUSTOM_QUESTION_MAX}
-                        </p>
-                        {customQuestionTrimmed.length > 0 &&
-                          customQuestionTrimmed.length < CUSTOM_QUESTION_MIN && (
-                            <p className="text-xs font-semibold text-amber-500">
-                              Min {CUSTOM_QUESTION_MIN} chars
-                            </p>
-                          )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Web search toggle */}
-                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-800/50 bg-zinc-900/30 px-3.5 py-3 transition hover:bg-zinc-900/50">
-                    <input
-                      type="checkbox"
-                      checked={includeWebSearch}
-                      onChange={(e) => setIncludeWebSearch(e.target.checked)}
-                      className="h-4 w-4 cursor-pointer accent-emerald-400 shrink-0"
-                    />
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                        <Globe className="h-3.5 w-3.5 text-emerald-500" />
-                        Include web search
-                      </p>
-                      <p className="text-[10px] text-zinc-600 mt-0.5">Grounds facts with current web sources</p>
-                    </div>
-                  </label>
-
-                  {/* Focus changed notice */}
-                  {focusChanged && !hasWriteUp && (
-                    <p className="flex items-center gap-2 rounded-xl border border-emerald-700/30 bg-emerald-950/20 px-3.5 py-2.5 text-xs font-medium text-emerald-300">
-                      <Sparkles className="h-4 w-4 text-emerald-400 shrink-0" />
-                      Style updated — click Generate to apply
-                    </p>
-                  )}
-
-                  {/* Generate button */}
-                  <button
-                    type="button"
-                    disabled={!topPrediction || infoLoading || !customQuestionValid}
-                    onClick={fetchPlantInfo}
-                    className="w-full rounded-xl border border-emerald-600/50 bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition enabled:hover:from-emerald-500 enabled:hover:to-emerald-400 enabled:hover:shadow-emerald-500/40 disabled:opacity-40 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                  >
-                    {infoLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        Generating…
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center gap-2">
-                        <Sparkles className="h-4 w-4" />
-                        Generate Write-up
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Info error */}
-                  {infoError && (
-                    <p
-                      role="alert"
-                      className="rounded-xl border border-red-900/60 bg-red-950/40 px-3.5 py-3 text-xs text-red-200 flex items-start gap-2"
-                    >
-                      <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                      <span>{infoError}</span>
-                    </p>
-                  )}
-                </div>
-              </section>
-            )}
-
-          </div>
-
           {/* Professional Group Project / Team footer */}
           <div className="mt-auto border-t border-zinc-900 bg-zinc-950/80 px-5 py-4">
             <div className="flex items-start gap-2.5">
@@ -886,12 +717,7 @@ export default function Home() {
                   <span className="text-zinc-800">•</span>
                   <span>Chinmoy</span>
                 </div>
-                <p className="text-[9px] text-zinc-600 mt-1 leading-relaxed">
-                  Plant AI Leaf Identifier Project
-                </p>
-=======
                 <p className="text-[9px] text-zinc-700 mt-1">Plant AI Leaf Identifier Project</p>
->>>>>>> f214caecad3d9827fbc47c83c4576ccba882a056
               </div>
             </div>
           </div>

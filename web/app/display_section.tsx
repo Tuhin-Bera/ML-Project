@@ -33,8 +33,6 @@ type ResolvedLayout = {
 
 function resolveDisplayBlocks(
   focus: PlantInfoFocus,
-  _sections: PlantInfoSections,
-  _customQuestion?: string,
 ): ResolvedLayout {
   const titles: Record<PlantInfoFocus, { reportTitle: string; subtitle: string }> = {
     balanced: { reportTitle: "Plant Profile", subtitle: "A balanced overview covering benefits, risks, uses, and safety." },
@@ -754,11 +752,9 @@ function CustomShortAnswerLayout({
 
 function CustomFullAnswerLayout({
   sections,
-  density,
   reportId,
 }: {
   sections: PlantInfoSections;
-  density: Density;
   reportId: string;
 }) {
   let n = 0;
@@ -1102,11 +1098,7 @@ export function PlantAnswerDisplay({
   model,
   answerMode,
 }: PlantAnswerDisplayProps) {
-  const { layout, blocks } = resolveDisplayBlocks(
-    focus,
-    sections,
-    customQuestion ?? undefined,
-  );
+  const { layout, blocks } = resolveDisplayBlocks(focus);
   const density = getDensity(sections);
   const isCustom = focus === "custom";
   const reportId = useId();
@@ -1244,7 +1236,6 @@ export function PlantAnswerDisplay({
         ) : (
           <CustomFullAnswerLayout
             sections={sections}
-            density={density}
             reportId={reportId}
           />
         )

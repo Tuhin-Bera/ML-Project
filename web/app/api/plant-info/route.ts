@@ -623,7 +623,7 @@ export async function POST(request: Request) {
         answerMode,
       }),
     );
-  } catch (e) {
+  } catch {
     const fallback = buildFallbackSections(
       plantName,
       focus,
