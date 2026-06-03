@@ -70,7 +70,7 @@ app.add_middleware(
 )
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     gemini_enabled = bool(os.environ.get("GEMINI_API_KEY", "").strip())
     return {
