@@ -1,5 +1,7 @@
+import asyncio
 import os
 from contextlib import asynccontextmanager
+from functools import partial
 from time import monotonic
 import logging
 
@@ -137,8 +139,15 @@ async def predict(request: Request, file: UploadFile = File(...), top_k: int = 5
     k = max(1, min(top_k, 20))
 
     # ── Step 1: Run local model ────────────────────────────────────────────────
+    # FIX 5: predict_topk is CPU-bound (PyTorch inference + PIL decode).
+    # Running it directly in an async def blocks the entire event loop, meaning
+    # no other requests can be served while inference runs (~5-8s on free tier).
+    # run_in_executor offloads it to a thread so the event loop stays free.
     try:
-        predictions = _classifier.predict_topk(raw, k=k)
+        loop = asyncio.get_event_loop()
+        predictions = await loop.run_in_executor(
+            None, partial(_classifier.predict_topk, raw, k)
+        )
         logger.info(
             "Local model prediction: %s (confidence: %.2f%%)",
             predictions[0]["label"] if predictions else "none",
@@ -158,14 +167,16 @@ async def predict(request: Request, file: UploadFile = File(...), top_k: int = 5
         or os.environ.get("GROQ_API_KEY", "").strip()
     )
 
-    # ── Step 2: LLM fallback chain (low confidence → try Gemini then Groq) ─────
+    # ── Step 2: LLM fallback chain (low confidence → try Groq then Gemini) ─────
+    # FIX 2: classify_with_fallback_chain is now async (uses httpx.AsyncClient),
+    # so we await it instead of calling it synchronously.
     if any_llm_available and should_fallback(predictions):
         logger.info(
             "Local model confidence %.2f%% below threshold — trying LLM fallback chain.",
             predictions[0]["confidence"] * 100 if predictions else 0,
         )
         try:
-            predictions, source = classify_with_fallback_chain(
+            predictions, source = await classify_with_fallback_chain(
                 image_bytes=raw,
                 content_type=file.content_type or "image/jpeg",
                 top_k=k,

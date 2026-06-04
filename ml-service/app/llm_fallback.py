@@ -187,7 +187,7 @@ def _parse_predictions(text: str, top_k: int, provider: str) -> list[dict[str, A
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Groq (PRIMARY fallback)
+# Groq (PRIMARY fallback) — FIX 2: async httpx
 # ═════════════════════════════════════════════════════════════════════════════
 
 def _groq_api_key() -> str:
@@ -203,7 +203,7 @@ def _groq_model() -> str:
     return os.environ.get("GROQ_MODEL", GROQ_DEFAULT_MODEL).strip()
 
 
-def classify_with_groq(
+async def classify_with_groq(  # FIX 2: was sync def
     image_bytes: bytes,
     content_type: str = "image/jpeg",
     top_k: int = 5,
@@ -213,6 +213,7 @@ def classify_with_groq(
     PRIMARY fallback: 1,000 req/day free, fastest inference on LPU hardware.
     Raises RuntimeError on any failure so the caller can try the next provider.
 
+    FIX 2: Uses httpx.AsyncClient to avoid blocking the FastAPI event loop.
     Note: Groq base64 requests are limited to 4 MB per image.
     """
     api_key  = _groq_api_key()
@@ -244,8 +245,9 @@ def classify_with_groq(
     }
 
     try:
-        with httpx.Client(timeout=30) as client:
-            resp = client.post(
+        # FIX 2: AsyncClient instead of Client — does not block the event loop
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
                 GROQ_API_BASE,
                 json=payload,
                 headers={
@@ -277,7 +279,7 @@ def classify_with_groq(
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# Gemini (SECONDARY fallback)
+# Gemini (SECONDARY fallback) — FIX 2: async httpx
 # ═════════════════════════════════════════════════════════════════════════════
 
 def _gemini_api_key() -> str:
@@ -293,7 +295,7 @@ def _gemini_model() -> str:
     return os.environ.get("GEMINI_MODEL", GEMINI_DEFAULT_MODEL).strip()
 
 
-def classify_with_gemini(
+async def classify_with_gemini(  # FIX 2: was sync def
     image_bytes: bytes,
     content_type: str = "image/jpeg",
     top_k: int = 5,
@@ -302,6 +304,8 @@ def classify_with_gemini(
     Call Gemini Vision and return predictions.
     SECONDARY fallback: only reached when Groq fails or hits quota.
     Raises RuntimeError on any failure so the caller knows all providers failed.
+
+    FIX 2: Uses httpx.AsyncClient to avoid blocking the FastAPI event loop.
     """
     api_key = _gemini_api_key()
     model   = _gemini_model()
@@ -332,8 +336,9 @@ def classify_with_gemini(
     url = f"{GEMINI_API_BASE}/{model}:generateContent?key={api_key}"
 
     try:
-        with httpx.Client(timeout=30) as client:
-            resp = client.post(url, json=payload)
+        # FIX 2: AsyncClient instead of Client — does not block the event loop
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(url, json=payload)
             resp.raise_for_status()
     except httpx.HTTPStatusError as exc:
         logger.error("Gemini HTTP error %s: %s", exc.response.status_code, exc.response.text)
@@ -361,13 +366,15 @@ def classify_with_gemini(
 # Unified fallback chain  ← use this in main.py
 # ═════════════════════════════════════════════════════════════════════════════
 
-def classify_with_fallback_chain(
+async def classify_with_fallback_chain(  # FIX 2: was sync def
     image_bytes: bytes,
     content_type: str = "image/jpeg",
     top_k: int = 5,
 ) -> tuple[list[dict[str, Any]], str]:
     """
     Try each vision provider in order and return the first successful result.
+
+    FIX 2: Fully async — all HTTP calls use AsyncClient and are properly awaited.
 
     Chain order:
         1. Groq   (primary   — 1,000 req/day, fastest LPU inference)
@@ -391,7 +398,7 @@ def classify_with_fallback_chain(
     # ── 1. Groq (primary) ─────────────────────────────────────────────────────
     if groq_available:
         try:
-            preds = classify_with_groq(image_bytes, content_type, top_k)
+            preds = await classify_with_groq(image_bytes, content_type, top_k)
             return preds, "groq_fallback"
         except RuntimeError as exc:
             logger.warning("Groq failed (%s), trying Gemini next.", exc)
@@ -402,7 +409,7 @@ def classify_with_fallback_chain(
     # ── 2. Gemini (secondary) ─────────────────────────────────────────────────
     if gemini_available:
         try:
-            preds = classify_with_gemini(image_bytes, content_type, top_k)
+            preds = await classify_with_gemini(image_bytes, content_type, top_k)
             return preds, "gemini_fallback"
         except RuntimeError as exc:
             logger.warning("Gemini failed (%s). No more fallbacks.", exc)

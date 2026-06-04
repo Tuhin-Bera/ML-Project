@@ -31,6 +31,9 @@ IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 LOW_CONFIDENCE_FLOOR = 0.15
 
+# FIX 3: Cap images at this size before processing to avoid loading huge files into memory
+IMAGE_MAX_SIDE = 1024
+
 _BACKBONES: dict[str, tuple[Callable[..., nn.Module], Any]] = {
     "b0": (efficientnet_b0, EfficientNet_B0_Weights.IMAGENET1K_V1),
     "b1": (efficientnet_b1, EfficientNet_B1_Weights.IMAGENET1K_V1),
@@ -146,7 +149,17 @@ class PlantClassifier:
 
         if self.model is None:
             raise RuntimeError("Model is not initialized.")
-        img = Image.open(BytesIO(image_bytes)).convert("RGB")
+
+        # FIX 3: Downsample large images before processing.
+        # Images up to 8MB can be 4000x3000+; the model only needs 224x224.
+        # Thumbnailing before convert("RGB") avoids decoding all those pixels
+        # into memory unnecessarily, saving ~0.5-1s and significant RAM on
+        # Render's 512MB free tier.
+        img = Image.open(BytesIO(image_bytes))
+        if max(img.size) > IMAGE_MAX_SIDE:
+            img.thumbnail((IMAGE_MAX_SIDE, IMAGE_MAX_SIDE), Image.LANCZOS)
+        img = img.convert("RGB")
+
         x = self.transform(img).unsqueeze(0).to(self.device, non_blocking=self.device.type == "cuda")
         if self.device.type == "cuda":
             x = x.to(memory_format=torch.channels_last)
